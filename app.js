@@ -15097,16 +15097,30 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   let sleepTimerInterval = null;
 
+  function syncSleepTimerButtons(value) {
+    if (!el.sleepTimerStatus) return;
+    const panel = el.sleepTimerStatus.closest('.audio-panel');
+    if (!panel) return;
+    panel.querySelectorAll('[data-sleep-minutes]').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.sleepMinutes === value);
+    });
+  }
+
   function updateSleepTimerUI() {
     if (!el.sleepTimerStatus) return;
     if (!state.sleepTimer) {
       el.sleepTimerStatus.textContent = 'Off';
+      el.sleepTimerStatus.classList.remove('active');
+      syncSleepTimerButtons(null);
       return;
     }
+    el.sleepTimerStatus.classList.add('active');
     if (state.sleepTimer.mode === 'end') {
       el.sleepTimerStatus.textContent = 'End of track';
+      syncSleepTimerButtons('end');
       return;
     }
+    syncSleepTimerButtons(String(state.sleepTimer.minutes));
     const left = Math.max(0, state.sleepTimer.endsAt - Date.now());
     const mins = Math.floor(left / 60000);
     const secs = Math.floor((left % 60000) / 1000);
@@ -15151,7 +15165,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     const minutes = Number(value);
     if (!Number.isFinite(minutes) || minutes <= 0) return;
-    state.sleepTimer = { mode: 'minutes', endsAt: Date.now() + minutes * 60000 };
+    state.sleepTimer = { mode: 'minutes', minutes, endsAt: Date.now() + minutes * 60000 };
     updateSleepTimerUI();
     showToast(`Sleep timer: ${minutes} min`);
     sleepTimerInterval = setInterval(() => {
@@ -15215,6 +15229,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     state.currentTrack = track || null;
     if (state.currentTrack) updateNowPlayingUI(state.currentTrack);
     updateQueueBadge();
+    if (el.queueCount) {
+      el.queueCount.classList.remove('restored');
+      void el.queueCount.offsetWidth;
+      el.queueCount.classList.add('restored');
+    }
     renderQueueView();
   }
 
@@ -15326,11 +15345,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     let html = '';
     let group = '';
     rows.forEach((row, i) => {
+      const delay = Math.min(i, 10);
       if (row.group !== group) {
         group = row.group;
-        html += `<div class="command-palette-group">${escapeHtml(group)}</div>`;
+        html += `<div class="command-palette-group" style="--row-i:${delay}">${escapeHtml(group)}</div>`;
       }
-      html += `<button type="button" class="command-palette-row${i === 0 ? ' active' : ''}" data-palette-index="${i}">
+      html += `<button type="button" class="command-palette-row${i === 0 ? ' active' : ''}" data-palette-index="${i}" style="--row-i:${delay}">
         <span class="command-palette-label">${escapeHtml(row.label)}</span>
         <span class="command-palette-hint">${escapeHtml(row.hint || '')}</span>
       </button>`;
@@ -15356,9 +15376,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   function openCommandPalette() {
     if (!el.commandPalette) return;
     el.commandPaletteInput.value = '';
+    if (el.commandPaletteResults) el.commandPaletteResults.classList.add('entering');
     renderCommandPalette('');
     openModal(el.commandPalette);
     setTimeout(() => el.commandPaletteInput.focus(), 30);
+    setTimeout(() => {
+      if (el.commandPaletteResults) el.commandPaletteResults.classList.remove('entering');
+    }, 420);
     loadPaletteLibrary().then(() => {
       if (el.commandPalette.classList.contains('visible')) renderCommandPalette(el.commandPaletteInput.value);
     });

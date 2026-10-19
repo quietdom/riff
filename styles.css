@@ -2810,6 +2810,70 @@ body.m3-cover-on .artwork-wrapper {
   font-size: calc(12px * var(--font-scale, 1));
   color: var(--md-sys-color-outline);
 }
+
+.command-palette-results.entering .command-palette-row,
+.command-palette-results.entering .command-palette-group {
+  animation: m3FadeUp 240ms cubic-bezier(0.2, 0, 0, 1) backwards;
+  animation-delay: calc(var(--row-i, 0) * 18ms);
+}
+.command-palette-empty {
+  animation: m3FadeUp 200ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+.sleep-timer-options .btn-outline-pill.active {
+  background: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+}
+#sleep-timer-status.active {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--md-sys-color-primary);
+}
+#sleep-timer-status.active::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: sleepDot 2s ease-in-out infinite;
+}
+@keyframes sleepDot {
+  0%, 100% { opacity: 0.35; transform: scale(0.75); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+#btn-dedupe-playlist:not(.hidden) {
+  animation: m3FadeUp 240ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+.nav-badge.restored {
+  animation: queueBadgeRestore 700ms cubic-bezier(0.2, 0, 0, 1) 400ms both;
+}
+@keyframes queueBadgeRestore {
+  0% { transform: scale(0.6); opacity: 0.4; }
+  45% { transform: scale(1.18); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .command-palette-results.entering .command-palette-row,
+  .command-palette-results.entering .command-palette-group,
+  .command-palette-empty,
+  #btn-dedupe-playlist:not(.hidden),
+  .nav-badge.restored,
+  #sleep-timer-status.active::before {
+    animation: none;
+  }
+}
+body.perf .command-palette-results.entering .command-palette-row,
+body.perf .command-palette-results.entering .command-palette-group,
+body.perf .command-palette-empty,
+body.perf #btn-dedupe-playlist:not(.hidden),
+body.perf .nav-badge.restored,
+body.perf #sleep-timer-status.active::before {
+  animation: none;
+}
 .settings-title-group {
   display: flex;
   align-items: center;
