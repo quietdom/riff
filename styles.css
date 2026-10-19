@@ -1521,6 +1521,15 @@ body.perf .my-wave-ambient-light {
   text-decoration: underline;
   color: var(--md-sys-color-on-surface);
 }
+.track-row-title,
+.track-row-artist,
+.track-title,
+.track-artist,
+.right-panel-title,
+.right-panel-artist,
+.playlist-item-name {
+  unicode-bidi: plaintext;
+}
 .track-row-duration {
   font-size: calc(12px * var(--font-scale, 1));
   color: var(--md-sys-color-outline);
@@ -2701,6 +2710,105 @@ body.m3-cover-on .artwork-wrapper {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+.command-palette-card {
+  width: min(600px, calc(100vw - 40px));
+  max-height: 70vh;
+  padding: 12px;
+  gap: 8px;
+}
+.command-palette-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 16px;
+  background: var(--md-sys-color-surface-container-highest);
+  color: var(--md-sys-color-on-surface-variant);
+}
+.command-palette-field input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--md-sys-color-on-surface);
+  font: inherit;
+  font-size: calc(15px * var(--font-scale, 1));
+  outline: none;
+}
+.command-palette-key {
+  flex: none;
+  font-size: calc(11px * var(--font-scale, 1));
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: var(--md-sys-color-surface-container);
+  color: var(--md-sys-color-outline);
+}
+.command-palette-results {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+.command-palette-group {
+  font-size: calc(11px * var(--font-scale, 1));
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--md-sys-color-outline);
+  padding: 10px 12px 4px;
+}
+.command-palette-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 9px 12px;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--md-sys-color-on-surface);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.command-palette-row.active {
+  background: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+}
+.command-palette-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  unicode-bidi: plaintext;
+}
+.command-palette-hint {
+  flex: none;
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: calc(12px * var(--font-scale, 1));
+  opacity: 0.72;
+  unicode-bidi: plaintext;
+}
+.command-palette-empty {
+  padding: 20px;
+  text-align: center;
+  color: var(--md-sys-color-outline);
+}
+.sleep-timer-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.sleep-timer-hint {
+  display: block;
+  margin-top: 10px;
+  font-size: calc(12px * var(--font-scale, 1));
+  color: var(--md-sys-color-outline);
 }
 .settings-title-group {
   display: flex;
