@@ -15257,8 +15257,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
     const seen = new Set();
+    const playlistTracks = [];
+    for (const pl of state.playlists) {
+      if (pl && Array.isArray(pl.tracks)) playlistTracks.push(...pl.tracks);
+    }
     const sources = [
       { group: 'Favorites', tracks: state.favorites },
+      { group: 'In playlists', tracks: playlistTracks },
       { group: 'Queue', tracks: state.queue },
       { group: 'History', tracks: state.history },
       { group: 'Library', tracks: state.localTracks }
@@ -15275,6 +15280,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (rows.length >= 24) break;
       }
       if (rows.length >= 24) break;
+    }
+    const trimmed = query.trim();
+    if (trimmed) {
+      rows.push({
+        group: 'Online',
+        label: `Search for "${trimmed}"`,
+        hint: 'Discover',
+        run: () => {
+          if (el.searchInput) el.searchInput.value = trimmed;
+          performSearch(trimmed);
+        }
+      });
     }
     return rows;
   }
@@ -15325,12 +15342,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  async function loadPaletteLibrary() {
+    if (Array.isArray(state.localTracks) && state.localTracks.length) return;
+    try {
+      const res = await fetch(`http://127.0.0.1:${state.serverPort}/api/library`);
+      const tracks = await res.json();
+      if (!Array.isArray(tracks)) return;
+      state.localTracks = tracks;
+      updateLocalBadge();
+    } catch (e) {}
+  }
+
   function openCommandPalette() {
     if (!el.commandPalette) return;
     el.commandPaletteInput.value = '';
     renderCommandPalette('');
     openModal(el.commandPalette);
     setTimeout(() => el.commandPaletteInput.focus(), 30);
+    loadPaletteLibrary().then(() => {
+      if (el.commandPalette.classList.contains('visible')) renderCommandPalette(el.commandPaletteInput.value);
+    });
   }
 
   if (el.commandPaletteInput) {
