@@ -23312,6 +23312,26 @@ function bindCoverHoldZoom(wrapEl) {
       downloadAbort = new AbortController();
 
       try {
+        const applyEffects = Boolean(document.getElementById('download-apply-effects')?.checked);
+        const needsProcessing = applyEffects || startSec > 0 || endSec !== null;
+        if (!needsProcessing && t.platform !== 'local') {
+          const directDir = state.downloadDir || localStorage.getItem('riff_download_dir') || '';
+          const directThumb = getTrackThumbUrl(t) || t.thumbnail || t.cover || '';
+          const directUrl = `http://127.0.0.1:${state.serverPort}/api/download?url=${encodeURIComponent(t.url || '')}&id=${encodeURIComponent(t.id || '')}&title=${encodeURIComponent(t.title || '')}&artist=${encodeURIComponent(t.artist || '')}&format=${selectedFormat}&quality=${selectedQuality}&thumbnail=${encodeURIComponent(directThumb)}&customDir=${encodeURIComponent(directDir)}`;
+          const directRes = await fetch(directUrl, { signal: downloadAbort.signal });
+          const directText = await directRes.text();
+          let directData;
+          try {
+            directData = JSON.parse(directText);
+          } catch (e) {
+            throw new Error(directText || 'Server error');
+          }
+          if (!directData.success) throw new Error(directData.error || 'Failed to download');
+          showToast(`Download complete: saved to ${directData.directory ? directData.directory + '/' : ''}${directData.filename}`, 'info');
+          if (el.downloadModal) closeModal(el.downloadModal);
+          return;
+        }
+
         let audioSourceUrl = null;
         const isCurrent = isSameTrack(t, state.currentTrack);
         if (isCurrent && el.nativeAudio && el.nativeAudio.src && !el.nativeAudio.src.startsWith('blob:')) {
@@ -23366,7 +23386,6 @@ function bindCoverHoldZoom(wrapEl) {
           bufferToProcess = trimAudioBuffer(decodeCtx, decodedBuffer, startSec, endSec);
         }
 
-        const applyEffects = Boolean(document.getElementById('download-apply-effects')?.checked);
         let finalBuffer = bufferToProcess;
         if (applyEffects) {
           const currentSettings = {
