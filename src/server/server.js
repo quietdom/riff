@@ -6843,6 +6843,9 @@ async function handlePlaylistImport(req, res, inputUrl) {
     } catch (_) {}
   }
   const targetUrl = (isYouTube && listId) ? ('https://www.youtube.com/playlist?list=' + encodeURIComponent(listId)) : inputUrl;
+  const sourceInfo = (isYouTube && listId)
+    ? { sourceUrl: targetUrl, sourceId: listId, sourcePlatform: 'youtube' }
+    : {};
   const args = [
     '--dump-single-json',
     '--ignore-errors',
@@ -6919,7 +6922,8 @@ async function handlePlaylistImport(req, res, inputUrl) {
             success: true,
             name: fallbackPl.name || data.title || 'YouTube Playlist',
             cover: fbCover,
-            tracks: fallbackPl.tracks
+            tracks: fallbackPl.tracks,
+            ...sourceInfo
           }));
         }
       }
@@ -6941,7 +6945,7 @@ async function handlePlaylistImport(req, res, inputUrl) {
     if (!cover) cover = '';
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify({ success: true, name: data.title || 'Imported playlist', cover, tracks }));
+    return res.end(JSON.stringify({ success: true, name: data.title || 'Imported playlist', cover, tracks, ...sourceInfo }));
   } catch (err) {
     if (isYouTube && listId) {
       try {
@@ -6953,7 +6957,8 @@ async function handlePlaylistImport(req, res, inputUrl) {
             success: true,
             name: fallbackPl.name || 'YouTube Playlist',
             cover: fbCover,
-            tracks: fallbackPl.tracks
+            tracks: fallbackPl.tracks,
+            ...sourceInfo
           }));
         }
       } catch (_) {}
