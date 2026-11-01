@@ -1750,6 +1750,14 @@ body.perf .artist-link-part { transition: none !important; }
   flex-shrink: 0;
   font-variant-numeric: tabular-nums;
 }
+.track-row-listen-time {
+  font-size: calc(11px * var(--font-scale, 1));
+  color: var(--md-sys-color-outline);
+  opacity: 0.75;
+  flex-shrink: 0;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
 .track-row-actions {
   display: flex;
   align-items: center;

@@ -2906,6 +2906,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   let scrubLastTime = 0;
   let lastDisplayedSec = -1;
   let lastTimeupdateSec = -1;
+  let listenTickTrackId = '';
+  let listenTickTime = 0;
 
   function stopVisualizers() {
     if (animationFrameId) {
@@ -4069,6 +4071,51 @@ document.addEventListener('DOMContentLoaded', async () => {
     const cid = getTrackCanonicalId(track);
     return cid ? (getTrackTrims()[cid] || null) : null;
   }
+
+  let listenTimeCache = null;
+  let listenTimeDirty = false;
+  let listenTimeSavedAt = 0;
+
+  function getListenTimeMap() {
+    if (!listenTimeCache) {
+      const stored = safeJson('riff_listen_time', {});
+      listenTimeCache = (stored && typeof stored === 'object' && !Array.isArray(stored)) ? stored : {};
+    }
+    return listenTimeCache;
+  }
+
+  function getTrackListenSeconds(track) {
+    const cid = getTrackCanonicalId(track);
+    if (!cid) return 0;
+    const value = Number(getListenTimeMap()[cid]);
+    return Number.isFinite(value) && value > 0 ? value : 0;
+  }
+
+  function flushListenTime(force = false) {
+    if (!listenTimeDirty) return;
+    if (!force && Date.now() - listenTimeSavedAt < 8000) return;
+    listenTimeDirty = false;
+    listenTimeSavedAt = Date.now();
+    try { localStorage.setItem('riff_listen_time', JSON.stringify(listenTimeCache || {})); } catch (_) {}
+  }
+
+  function addTrackListenTime(track, seconds) {
+    if (!track || !(seconds > 0)) return;
+    const cid = getTrackCanonicalId(track);
+    if (!cid) return;
+    const map = getListenTimeMap();
+    map[cid] = Math.round(((Number(map[cid]) || 0) + seconds) * 10) / 10;
+    listenTimeDirty = true;
+    flushListenTime(false);
+  }
+
+  function formatListenTime(seconds) {
+    const sec = Number(seconds) || 0;
+    if (sec < 60) return '';
+    if (sec < 3600) return `${Math.round(sec / 60)} min`;
+    const hours = sec / 3600;
+    return `${hours >= 10 ? Math.round(hours) : hours.toFixed(1)} h`;
+  }
   function saveTrackTrim(track, startSec, endSec, totalDur) {
     if (!track) return;
     const cid = getTrackCanonicalId(track);
@@ -4440,6 +4487,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     preloadedTrack10sFired = false;
     lastDisplayedSec = -1;
     if (typeof lastTimeupdateSec !== 'undefined') lastTimeupdateSec = -1;
+    listenTickTrackId = '';
+    listenTickTime = 0;
     if (syncState && syncState.active) {
       const overlay = document.getElementById('sync-mode-overlay');
       if (!overlay || overlay.classList.contains('hidden') || !overlay.classList.contains('visible')) {
@@ -8002,7 +8051,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   let frozenCurTime = 0;
   let smoothFadeToken = 0;
   let isAppClosing = false;
-  window.addEventListener('beforeunload', () => { isAppClosing = true; });
+  window.addEventListener('beforeunload', () => { isAppClosing = true; flushListenTime(true); });
 
   function pauseSmooth() {
     stopCrossfadeTail();
@@ -8704,6 +8753,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     el.nativeAudio.addEventListener('pause', () => {
+      flushListenTime(true);
       if (state.isLoadingTrack || activeStreamRecovery) return;
       clearPlaybackStallTimer();
       isPauseFading = false;
@@ -8744,6 +8794,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     el.nativeAudio.addEventListener('ended', () => {
+      flushListenTime(true);
       updatePlayPauseButton(false, false);
       if (state.sleepTimer && state.sleepTimer.mode === 'end') {
         state.sleepTimer = null;
@@ -8816,6 +8867,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     lastTimeupdateSec = -1;
     el.nativeAudio.addEventListener('timeupdate', () => {
+      if (state.currentTrack && el.nativeAudio && !el.nativeAudio.paused) {
+        const listenId = getTrackCanonicalId(state.currentTrack);
+        const listenNow = el.nativeAudio.currentTime;
+        if (listenId && listenId === listenTickTrackId && Number.isFinite(listenNow)) {
+          const delta = listenNow - listenTickTime;
+          if (delta > 0 && delta < 1.5) addTrackListenTime(state.currentTrack, delta);
+        }
+        listenTickTrackId = listenId;
+        listenTickTime = Number.isFinite(listenNow) ? listenNow : 0;
+      } else {
+        listenTickTrackId = '';
+      }
       if (!preloadedTrack10sFired && el.nativeAudio && el.nativeAudio.currentTime >= 10) {
         preloadedTrack10sFired = true;
         preloadNextTrackStream();
@@ -11216,6 +11279,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       const trackArtist = (track.artist || '').trim().toLowerCase();
       const showArtist = true;
       const explicitTag = isTrackExplicit(track) ? '<span class="explicit-badge" title="Explicit">E</span>' : '';
+      const listenLabel = formatListenTime(getTrackListenSeconds(track));
+      const listenTag = listenLabel ? `<span class="track-row-listen-time" title="Time listened">${listenLabel}</span>` : '';
 
       row.innerHTML = `
       <div class="track-row-num">
@@ -11237,6 +11302,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       <span class="track-row-title">${(context === 'favorites' || context === 'playlist') && isTrackPinned(track) ? '<svg class="track-pin-mark" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 3h6l-1 7 3 3v2H7v-2l3-3-1-7z"/></svg>' : ''}${escapeHtml(track.title || 'untitled')}</span>
       <div class="track-row-artist-wrap">${explicitTag}${showArtist ? `<span class="track-row-artist" title="view artist profile">${escapeHtml(track.artist || 'unknown artist')}</span>` : ''}</div>
       </div>
+      ${listenTag}
       <span class="track-row-duration">${formatDuration(track.duration)}</span>
       <div class="track-row-actions">
       <button class="btn-icon-pill riff-share-action-btn btn-row-share" title="Copy share link" aria-label="Copy share link">
