@@ -9683,6 +9683,33 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
 
+    let btnDownloadAlbum = document.getElementById('btn-download-album');
+    if (!btnDownloadAlbum) {
+      const saveAnchor = document.getElementById('btn-save-album');
+      if (saveAnchor && saveAnchor.parentElement) {
+        btnDownloadAlbum = document.createElement('button');
+        btnDownloadAlbum.type = 'button';
+        btnDownloadAlbum.id = 'btn-download-album';
+        btnDownloadAlbum.className = 'btn-icon-pill';
+        btnDownloadAlbum.title = 'Download album';
+        btnDownloadAlbum.setAttribute('aria-label', 'Download album');
+        btnDownloadAlbum.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><polyline points="7 10 12 15 17 10"></polyline><path d="M5 21h14"></path></svg>';
+        saveAnchor.insertAdjacentElement('afterend', btnDownloadAlbum);
+      }
+    }
+    if (btnDownloadAlbum) {
+      btnDownloadAlbum.style.display = album.type === 'Daily Mix' ? 'none' : '';
+      btnDownloadAlbum.onclick = (e) => {
+        e.stopPropagation();
+        const list = (album._tracks && album._tracks.length ? album._tracks : (album.tracks || []));
+        if (!list.length) {
+          showToast('No tracks to download yet', 'info');
+          return;
+        }
+        openDownloadAllModal({ name: album.title || 'Album', tracks: list });
+      };
+    }
+
     const coverEl = document.getElementById('album-detail-cover');
     if (coverEl) {
       if (album.gridCovers && Array.isArray(album.gridCovers) && album.gridCovers.length >= 4) {
