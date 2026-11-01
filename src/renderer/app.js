@@ -11095,7 +11095,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       bar.classList.remove('hidden');
       if (countEl) countEl.textContent = `${count} selected`;
       if (btnRemove) {
-        const canRemove = state.currentView === 'playlist-detail' || state.currentView === 'queue' || state.currentView === 'local';
+        const canRemove = state.currentView === 'playlist-detail' || state.currentView === 'queue' || state.currentView === 'local' || state.currentView === 'favorites';
         btnRemove.style.display = canRemove ? '' : 'none';
       }
     } else {
@@ -11211,6 +11211,15 @@ document.addEventListener('DOMContentLoaded', async () => {
           openPlaylistDetail(state.currentPlaylistId);
           showToast(`Removed ${selected.length} track${selected.length === 1 ? '' : 's'}`);
         }
+      } else if (state.currentView === 'favorites') {
+        const selKeys = new Set(Array.from(state.selectedTracks.keys()));
+        const before = state.favorites.length;
+        state.favorites = state.favorites.filter(t => !selKeys.has(getTrackSelectionKey(t)));
+        localStorage.setItem('devsize_favorites', JSON.stringify(state.favorites));
+        updateFavoritesBadge();
+        updateFavoriteIcon();
+        if (typeof renderFavoritesView === 'function') renderFavoritesView();
+        showToast(`Removed ${before - state.favorites.length} track${before - state.favorites.length === 1 ? '' : 's'} from favorites`);
       } else if (state.currentView === 'queue') {
         const selKeys = new Set(Array.from(state.selectedTracks.keys()));
         const removedIndices = [];
