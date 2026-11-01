@@ -791,6 +791,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     queue: [],
     queueIndex: -1,
     queueHistory: [],
+    shufflePlayed: new Set(),
     currentTrack: null,
     currentTrackContext: null,
     currentTrackIndexInContext: -1,
@@ -4550,6 +4551,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         state.queueIndex = 0;
       }
       state.queueHistory = [state.queueIndex];
+      state.shufflePlayed = new Set();
+      const firstShuffleKey = getTrackCanonicalId(track);
+      if (firstShuffleKey) state.shufflePlayed.add(firstShuffleKey);
     } else {
       const existingIndex = state.queue.findIndex(t => isSameTrack(t, track));
       if (existingIndex === -1) {
@@ -8171,6 +8175,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const h = state.queueHistory;
     if (h[h.length - 1] !== idx) h.push(idx);
     if (h.length > 200) h.shift();
+    const track = state.queue && state.queue[idx];
+    if (track) {
+      if (!(state.shufflePlayed instanceof Set)) state.shufflePlayed = new Set();
+      const key = getTrackCanonicalId(track);
+      if (key) state.shufflePlayed.add(key);
+    }
   }
 
 
@@ -8359,10 +8369,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         const eligible = state.queue.map((track, index) => index)
           .filter(index => !isTrackBlocked(state.queue[index]) && !isArtistBlocked(state.queue[index]?.artist));
         if (eligible.length === 0) return;
-        const recent = new Set(state.queueHistory.slice(-Math.max(1, Math.floor(eligible.length / 2))));
-        const pool = eligible.filter(index => !recent.has(index));
-        const candidates = pool.length ? pool : eligible;
-        nextIdx = candidates[Math.floor(Math.random() * candidates.length)];
+        if (!(state.shufflePlayed instanceof Set)) state.shufflePlayed = new Set();
+        const currentKey = state.currentTrack ? getTrackCanonicalId(state.currentTrack) : '';
+        let pool = eligible.filter(index => {
+          const key = getTrackCanonicalId(state.queue[index]);
+          return key && key !== currentKey && !state.shufflePlayed.has(key);
+        });
+        if (!pool.length) {
+          state.shufflePlayed.clear();
+          pool = eligible.filter(index => getTrackCanonicalId(state.queue[index]) !== currentKey);
+          if (!pool.length) pool = eligible;
+        }
+        nextIdx = pool[Math.floor(Math.random() * pool.length)];
       }
       state.queueIndex = nextIdx;
       recordPlayedIndex(nextIdx);
@@ -14601,6 +14619,7 @@ function bindCoverHoldZoom(wrapEl) {
     el.btnShuffle.addEventListener('click', () => {
       state.isShuffle = !state.isShuffle;
       localStorage.setItem('riff_shuffle', state.isShuffle ? '1' : '0');
+      state.shufflePlayed = new Set();
       el.btnShuffle.classList.toggle('active', state.isShuffle);
     });
   }
@@ -14685,6 +14704,7 @@ function bindCoverHoldZoom(wrapEl) {
       state.queue = [];
       state.queueIndex = -1;
       state.queueHistory = [];
+      state.shufflePlayed = new Set();
       updateQueueBadge();
       renderQueueView();
     });
@@ -23320,6 +23340,7 @@ function bindCoverHoldZoom(wrapEl) {
       }
       state.isRadioQueue = false;
       state.queueHistory = [];
+      state.shufflePlayed = new Set();
       if (!state.isShuffle) {
         state.isShuffle = true;
         localStorage.setItem('riff_shuffle', '1');
